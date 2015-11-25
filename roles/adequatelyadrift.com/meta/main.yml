@@ -1,0 +1,7 @@
+---
+
+dependencies:
+  - role: common
+  - role: nodejs
+  - role: s3backup
+  

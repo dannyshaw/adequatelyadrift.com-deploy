@@ -1,0 +1,8 @@
+---
+
+- name: Backup adequatelyadrift.com
+  hosts: dsweb1
+  user: ubuntu
+  tasks: 
+    - name: Perform backup
+      command: "sh /home/{{access_user}}/bin/backup.sh"

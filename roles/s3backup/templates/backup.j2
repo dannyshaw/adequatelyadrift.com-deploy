@@ -1,0 +1,7 @@
+#! /bin/bash
+echo "[$(date +'%Y%m%d-%H%M')][backup-ghostdb] beginning backup ghost";
+{{ pre_backup }}
+bzip2 {{ backup_source }} -c > {{ backup_path }}/backup-$(date +'%Y%m%d-%H%M').bz2
+s3cmd sync -r --delete-removed {{ backup_path}}/* s3://{{ s3_backup_bucket }}
+find {{ backup_path }}/* -mtime +{{ days_to_retain_backup }} -exec rm {} \;
+{{ post_backup }}

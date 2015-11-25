@@ -1,0 +1,7 @@
+---
+
+- name: Launch adequatelyadrift.com
+  hosts: dsweb1
+  user: ubuntu
+  roles: 
+    - adequatelyadrift.com

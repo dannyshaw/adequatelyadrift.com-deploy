@@ -1,0 +1,57 @@
+---
+
+  - name: Gather EC2 Facts
+    action: ec2_facts
+
+  - name: Conditional
+    action: debug msg="This instance is a t1.micro"
+    when: ansible_ec2_instance_type == "t1.micro"
+
+  - name: Set Hostname according to hosts inventory
+    template: src=hostname.j2 dest=/etc/hostname
+    when: set_hostname is defined
+    notify: set hostname
+    become: yes
+    become_method: sudo
+
+# This ensures that there's a line in the file /etc/hosts to describe the new hostname.
+  - name: Ensure self-reference hostname in /etc/hosts
+    lineinfile: dest=/etc/hosts regexp='^127\.0\.0\.1' line="127.0.0.1 localhost {{ set_hostname }}" owner=root group=root mode=0644
+    when: set_hostname is defined
+    become: yes
+    become_method: sudo
+
+  # This is very useful.  Basically translates to "run apt-get update" on the target
+  - name: Regenerate apt-cache
+    apt: update_cache=yes
+    become: yes
+    become_method: sudo
+
+#If you're doing lots of packages at once, you can use with_items, and provide the apt: module with pkg={{ item }} and you get something like a foreach in [list] effect.
+  - name: install default packages
+    apt: pkg={{ item }} state=installed
+    with_items:
+      - aptitude
+      - vim
+      - htop
+      - screen
+      - git-core
+      - build-essential
+      - unzip
+      - curl
+      - libcurl3
+      - python-keyczar
+    become: yes
+    become_method: sudo
+
+  - name: Set timezone variables
+    copy: content='Australia/Melbourne'
+          dest=/etc/timezone
+          owner=root
+          group=root
+          mode=0644
+          backup=yes
+    notify:
+      - update timezone
+    become: yes
+    become_method: sudo

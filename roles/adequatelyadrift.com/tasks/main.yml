@@ -1,0 +1,64 @@
+---
+
+- name: "Determine deployment path state"
+  stat: path={{ deployment_path}}
+  register: deploy_dir
+  
+- name: "Determin db state"
+  stat: path={{ database_path}}
+  register: db_file
+
+- name: "create deployment directory"
+  file: >
+          path={{ deployment_path }}
+          state=directory
+          owner={{ access_user }}
+  when: not deploy_dir.stat.exists
+  tags: configuration
+  become: yes
+  become_method: sudo
+
+- name: "backup current db"
+  shell: cp {{ database_path }} /tmp/backup
+  when: db_file.stat.exists
+
+- name: pull and update app from git repo
+  action: git repo={{ git_repo_url }} dest={{ deployment_path }} update=yes version=master accept_hostkey=yes key_file=/home/{{ access_user }}/.ssh/id_rsa
+  sudo: no
+  tags: deployment
+
+- name: "Install app npm packages"
+  npm: path={{ deployment_path }}
+  tags: deployment
+
+- name: "restore current db if needed"
+  shell: cp /tmp/backup {{ database_path }}
+  when: db_file.stat.exists
+
+- name: "Install forever (to run app)."
+  npm: name=forever global=yes state=latest
+  tags: deployment
+  become: yes
+  become_method: sudo
+
+#lists node apps running  so that we can restart the app when it isnt
+- name: "Check list of Node.js apps running."
+  command: forever list
+  register: forever_list
+  changed_when: false
+  tags: deployment
+
+- name: "Start app."
+  command: "forever start {{ script_file }}"
+  environment:
+    NODE_ENV: production
+  when: "forever_list.stdout.find('{{ script_file }}') == -1"
+  tags: deployment
+
+- name: iptables 80 -> 2368
+  command: iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 2368
+  tags: configuration
+  become: yes
+  become_method: sudo
+
+

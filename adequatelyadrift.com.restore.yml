@@ -1,0 +1,8 @@
+---
+
+- name: Restore latest adequatelyadrift.com restore
+  hosts: dsweb1
+  user: ubuntu
+  tasks: 
+    - name: Perform restore
+      command: "sh /home/{{access_user}}/bin/restore.sh"

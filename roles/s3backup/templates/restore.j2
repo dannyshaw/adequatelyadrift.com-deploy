@@ -1,0 +1,10 @@
+#! /bin/bash
+
+echo "[$(date +'%Y%m%d-%H%M')][backup-ghostdb] restoring latest ghost backup";
+{{ pre_restore }}
+cp {{ backup_source }} /tmp/backup_before_restore-$(date +'%Y%m%d-%H%M').db -f
+LATEST_BACKUP=`s3cmd ls s3://{{ s3_backup_bucket }} | tail -1 | awk '{print $4}'`;
+rm /tmp/restored_backup.bz2 -f
+s3cmd get $LATEST_BACKUP /tmp/restored_backup.bz2 
+bunzip2 -c /tmp/restored_backup.bz2 > {{ backup_source }}
+{{ post_restore }}
